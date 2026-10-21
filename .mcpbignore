@@ -1,4 +1,5 @@
 src/
+worker/
 .github/
 coverage/
 *.test.*

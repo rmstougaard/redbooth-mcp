@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { TokenProvider } from "./auth.js";
 import { RedboothClient } from "./client.js";
+import { autoLoginInteractive } from "./login.js";
 import { registerAccountTools, registerProjectTools } from "./tools/account.js";
 import { registerRawTools, registerTaskTools } from "./tools/tasks.js";
 import { registerAuthTools } from "./tools/auth.js";
@@ -21,7 +22,8 @@ export function createServer(client: RedboothClient, readOnly = isReadOnly()): M
         "Tools for Redbooth project management. Typical flow: list_projects -> list_task_lists -> " +
         "list_tasks / create_task. Use list_users or get_me to find user IDs for assignment. " +
         "Task status values: new, open, hold, resolved (done), rejected. " +
-        "If a tool reports the user is not authenticated, call the login tool.",
+        "If not signed in yet, the first tool call will automatically open the user's browser to sign in, " +
+        "or you can call the login tool directly.",
     },
   );
   const ctx: ToolContext = { server, client, readOnly };
@@ -34,7 +36,10 @@ export function createServer(client: RedboothClient, readOnly = isReadOnly()): M
 }
 
 export async function startStdioServer(): Promise<void> {
-  const client = new RedboothClient(TokenProvider.fromEnv());
+  const tokens = TokenProvider.fromEnv({
+    onUnauthenticated: () => autoLoginInteractive(),
+  });
+  const client = new RedboothClient(tokens);
   const readOnly = isReadOnly();
   const server = createServer(client, readOnly);
   await server.connect(new StdioServerTransport());

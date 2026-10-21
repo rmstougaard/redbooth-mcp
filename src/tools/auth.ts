@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { tokenPath } from "../auth.js";
+import { clearTokens, tokenPath } from "../auth.js";
 import { openBrowser, startAuthFlow } from "../login.js";
 import { defineTool, type ToolContext } from "./helpers.js";
 
 /**
- * In-chat login so users of the Claude Desktop extension never need a terminal.
+ * In-chat login & logout tools so users never need a terminal or developer app.
  */
 export function registerAuthTools(ctx: ToolContext) {
   defineTool(
@@ -13,9 +13,8 @@ export function registerAuthTools(ctx: ToolContext) {
     {
       title: "Log in to Redbooth",
       description:
-        "Connect this server to a Redbooth account. Call this when other tools report 'Not authenticated' " +
-        "or an expired token. Opens the browser for authorization and waits for the user to approve " +
-        "(up to ~2 minutes). Requires REDBOOTH_CLIENT_ID and REDBOOTH_CLIENT_SECRET to be configured.",
+        "Sign in to your Redbooth account in the browser. Zero configuration required – " +
+        "opens your browser to Redbooth's authorization screen and waits for you to click Allow.",
       inputSchema: {
         wait_seconds: z
           .number()
@@ -23,21 +22,13 @@ export function registerAuthTools(ctx: ToolContext) {
           .min(0)
           .max(120)
           .optional()
-          .describe("How long to wait for the user to approve in the browser (default 90)."),
+          .describe("How long to wait for browser approval (default 90)."),
       },
     },
     async ({ wait_seconds }) => {
-      const { clientId, clientSecret } = ctx.client.tokens.credentials;
-      if (!clientId || !clientSecret) {
-        throw new Error(
-          "REDBOOTH_CLIENT_ID / REDBOOTH_CLIENT_SECRET are not configured for this server. " +
-            "Create an app at https://redbooth.com/oauth2/applications (redirect URI " +
-            "http://localhost:8765/callback) and add the credentials to the server config, " +
-            "or run `npx -y redbooth-mcp auth` in a terminal.",
-        );
-      }
+      const { clientId, clientSecret, brokerUrl } = ctx.client.tokens.credentials;
       const port = Number(process.env.REDBOOTH_REDIRECT_PORT ?? 8765);
-      const { authUrl, done } = await startAuthFlow({ clientId, clientSecret, port });
+      const { authUrl, done } = await startAuthFlow({ clientId, clientSecret, brokerUrl, port });
       openBrowser(authUrl);
 
       const waitMs = (wait_seconds ?? 90) * 1000;
@@ -53,10 +44,25 @@ export function registerAuthTools(ctx: ToolContext) {
       return {
         status: "pending",
         message:
-          "Waiting for authorization. Ask the user to open this URL, approve access, then call login again " +
-          "or retry the original request.",
+          "Browser opened. Please click 'Allow' on Redbooth to finish signing in (or open the URL below), " +
+          "then retry your request.",
         authorize_url: authUrl,
       };
+    },
+  );
+
+  defineTool(
+    ctx,
+    "logout",
+    {
+      title: "Log out of Redbooth",
+      description: "Disconnect the current Redbooth account and remove locally stored OAuth tokens.",
+      inputSchema: {},
+    },
+    async () => {
+      await clearTokens();
+      ctx.client.tokens.reset();
+      return { status: "logged_out" };
     },
   );
 }

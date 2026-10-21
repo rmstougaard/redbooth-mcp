@@ -38,7 +38,7 @@ describe("RedboothClient", () => {
     );
   });
 
-  it("refreshes the token once on 401 and persists new tokens", async () => {
+  it("refreshes the token once on 401 via custom app and persists new tokens", async () => {
     const file = tmpTokenFile();
     await saveTokens(
       { access_token: "old", refresh_token: "r1", client_id: "cid", client_secret: "sec" },
@@ -62,6 +62,47 @@ describe("RedboothClient", () => {
     expect(saved.client_id).toBe("cid");
   });
 
+  it("refreshes the token via the stateless OAuth broker when no client_secret is stored", async () => {
+    const file = tmpTokenFile();
+    await saveTokens(
+      { access_token: "old", refresh_token: "r1", broker_url: "https://broker.example" },
+      file,
+    );
+    const fetchImpl = vi.fn(async (url: string, init: any) => {
+      if (url === "https://broker.example/token") {
+        expect(init.body).toContain("grant_type=refresh_token");
+        expect(init.body).toContain("refresh_token=r1");
+        return jsonResponse(200, { access_token: "broker-new", refresh_token: "r2", expires_in: 7200 });
+      }
+      return init.headers.Authorization === "Bearer broker-new"
+        ? jsonResponse(200, { ok: true })
+        : jsonResponse(401, {});
+    });
+    const tokens = new TokenProvider({ file, fetchImpl: fetchImpl as any });
+    const client = new RedboothClient(tokens, { fetchImpl: fetchImpl as any });
+
+    await expect(client.get("/me")).resolves.toEqual({ ok: true });
+    const saved = JSON.parse(readFileSync(file, "utf8"));
+    expect(saved.access_token).toBe("broker-new");
+    expect(saved.broker_url).toBe("https://broker.example");
+  });
+
+  it("triggers onUnauthenticated auto-login on first tool call when no tokens exist", async () => {
+    const file = tmpTokenFile();
+    const onUnauthenticated = vi.fn(async () => ({
+      access_token: "auto-logged-in",
+      broker_url: "https://broker.example",
+    }));
+    const fetchImpl = vi.fn(async (_url: string, init: any) =>
+      jsonResponse(200, { auth: init.headers.Authorization }),
+    );
+    const tokens = new TokenProvider({ file, onUnauthenticated, fetchImpl: fetchImpl as any });
+    const client = new RedboothClient(tokens, { fetchImpl: fetchImpl as any });
+
+    await expect(client.get("/me")).resolves.toEqual({ auth: "Bearer auto-logged-in" });
+    expect(onUnauthenticated).toHaveBeenCalledTimes(1);
+  });
+
   it("refreshes proactively when the token is about to expire", async () => {
     const file = tmpTokenFile();
     await saveTokens(
@@ -73,7 +114,6 @@ describe("RedboothClient", () => {
     );
     const tp = new TokenProvider({ file, fetchImpl: fetchImpl as any });
     await expect(tp.getAccessToken()).resolves.toBe("fresh");
-    // refresh token kept when provider doesn't rotate it
     expect(JSON.parse(readFileSync(file, "utf8")).refresh_token).toBe("r1");
   });
 
@@ -129,7 +169,7 @@ describe("server", () => {
 
   it("registers read and write tools", () => {
     const tools = listTools(false);
-    expect(tools).toEqual(expect.arrayContaining(["list_projects", "list_tasks", "create_task", "add_comment"]));
+    expect(tools).toEqual(expect.arrayContaining(["login", "logout", "list_projects", "list_tasks", "create_task", "add_comment"]));
   });
 
   it("hides write tools in read-only mode", () => {
@@ -152,10 +192,11 @@ describe("server", () => {
     try {
       const { tools } = await mcpClient.listTools();
       const names = tools.map((t) => t.name);
-      expect(names).toHaveLength(20);
+      expect(names).toHaveLength(21);
       expect(names).toEqual(
         expect.arrayContaining([
           "login",
+          "logout",
           "get_me",
           "list_projects",
           "list_task_lists",

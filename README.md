@@ -1,85 +1,61 @@
-# Redbooth MCP Server
+# Redbooth for Claude (MCP Server)
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server for [Redbooth](https://redbooth.com). It lets Claude and other AI assistants read and manage your Redbooth projects, tasks, subtasks and comments.
+Connect [Redbooth](https://redbooth.com) to **Claude Desktop**, **Claude Code**, **Cursor**, **Antigravity**, and other MCP clients in **one click**—no API keys or developer setup needed.
 
-> "What's overdue in the Website project?" · "Create a task for Anna to review the Q3 deck by Friday" · "Summarize the comments on task 12345 and mark it done"
-
-Works with **Claude Desktop**, **Claude Code**, **Cursor**, **Antigravity**, **VS Code** and any other MCP client that supports local (stdio) servers.
+> *"What's overdue in the Website project?"* · *"Create a task for Anna to review the Q3 deck by Friday"* · *"Summarize the comments on task 12345 and mark it done"*
 
 ---
 
-## 1. Create a Redbooth OAuth app (one-time, ~2 min)
+## Quick Install
 
-Redbooth only supports OAuth2 and has no personal API keys, so each user registers their own (free) app:
+### Option A: Claude Desktop (1-Click Extension)
 
-1. Go to **https://redbooth.com/oauth2/applications** and create a new application.
-2. Set the **Redirect URI** to exactly:
-   ```
-   http://localhost:8765/callback
-   ```
-3. Copy the **Client ID** and **Client Secret**.
+1. [**Download `redbooth.mcpb`**](https://github.com/rmstougaard/redbooth-mcp/releases/latest/download/redbooth.mcpb) from the latest release.
+2. Double-click `redbooth.mcpb` (or drag it into **Claude Desktop → Settings → Extensions**) and click **Install**.
+3. Ask Claude anything about your Redbooth workspace (e.g. *"List my Redbooth projects"*).
+4. On your first question, your browser will automatically open to Redbooth—click **Allow** and you're connected!
 
-Your credentials and tokens stay on your machine. This server talks only to `redbooth.com`.
+---
 
-## 2. Install in your AI assistant
-
-### Option A: Claude Desktop extension (easiest)
-
-1. Download `redbooth.mcpb` from the [latest release](https://github.com/rmstougaard/redbooth-mcp/releases/latest).
-2. Double-click it, or drag it into **Claude Desktop → Settings → Extensions**.
-3. Enter your Client ID and Client Secret when prompted.
-4. In a chat, ask Claude to *"log in to Redbooth"*. Your browser opens; click **Allow**. Done.
-
-### Option B: Claude Code
+### Option B: Claude Code (1 Command)
 
 ```bash
-claude mcp add redbooth \
-  -e REDBOOTH_CLIENT_ID=your_id \
-  -e REDBOOTH_CLIENT_SECRET=your_secret \
-  -- npx -y redbooth-mcp
+claude mcp add redbooth -- npx -y redbooth-mcp
 ```
 
-### Option C: Claude Desktop / Cursor / Antigravity (JSON config)
+---
 
-Add this to your client's MCP config. For Claude Desktop that's `claude_desktop_config.json` (Settings → Developer → Edit Config):
+### Option C: Cursor / Antigravity / Claude Desktop JSON
+
+Add this to your MCP settings (`claude_desktop_config.json`, `.cursor/mcp.json`, or Antigravity MCP settings):
 
 ```json
 {
   "mcpServers": {
     "redbooth": {
       "command": "npx",
-      "args": ["-y", "redbooth-mcp"],
-      "env": {
-        "REDBOOTH_CLIENT_ID": "your_id",
-        "REDBOOTH_CLIENT_SECRET": "your_secret"
-      }
+      "args": ["-y", "redbooth-mcp"]
     }
   }
 }
 ```
 
-Restart the client.
+---
 
-## 3. Log in
+## How Sign-In & Privacy Work
 
-Either:
-
-- **In chat:** ask the assistant to *"log in to Redbooth"* (it calls the `login` tool), **or**
-- **In a terminal:**
-  ```bash
-  REDBOOTH_CLIENT_ID=your_id REDBOOTH_CLIENT_SECRET=your_secret npx -y redbooth-mcp auth
-  ```
-
-Tokens are stored in `~/.config/redbooth-mcp/tokens.json` (permissions `600`) and refreshed automatically. Check status with `npx -y redbooth-mcp status`.
+- **Automatic browser sign-in:** The first time you ask your assistant to read or update Redbooth, it opens your default browser to Redbooth's official OAuth screen. Click **Allow**, and your tokens are saved locally in `~/.config/redbooth-mcp/tokens.json` (permissions `0600`) and refreshed automatically.
+- **Direct connection:** A tiny, stateless Cloudflare Worker (`worker/`) handles only the initial OAuth handshake so you don't have to register your own Redbooth developer app. It stores zero data. All your projects, tasks, and comments flow **directly between your computer and `https://redbooth.com`**.
+- **Switch accounts anytime:** Ask Claude to *"log out of Redbooth"* or run `npx -y redbooth-mcp logout`.
 
 ---
 
-## Tools
+## Available Tools (21)
 
 | Tool | Description | Writes? |
 |---|---|:-:|
-| `login` | Connect to Redbooth (opens browser) | |
-| `get_me` | Current user | |
+| `login` / `logout` | Connect or disconnect your Redbooth account in the browser | |
+| `get_me` | Current user profile | |
 | `list_organizations` | Your organizations | |
 | `list_users` | Users (filter by org or project), to find assignee IDs | |
 | `list_projects` / `get_project` | Projects | |
@@ -95,27 +71,21 @@ Tokens are stored in `~/.config/redbooth-mcp/tokens.json` (permissions `600`) an
 | `list_comments` / `add_comment` | Task comments | ✏️ (add) |
 | `redbooth_api_get` | Read-only escape hatch for any API v3 GET path | |
 
-There are no delete tools, on purpose. Set `REDBOOTH_READ_ONLY=true` to hide every ✏️ tool.
+> **Read-only mode:** Enable the **Read-only mode** toggle in Claude Desktop's extension settings (or set `REDBOOTH_READ_ONLY=true`) to disable all ✏️ tools. Delete tools are intentionally excluded.
 
-## Configuration
+---
+
+## Advanced: Self-Hosting / Custom OAuth App
+
+If you prefer not to use the default stateless OAuth broker, you can either deploy your own Cloudflare Worker (see [`worker/README.md`](./worker/README.md)) or register a personal Redbooth app at `https://redbooth.com/oauth2/applications` (Redirect URI `http://localhost:8765/callback`):
 
 | Variable | Purpose |
 |---|---|
-| `REDBOOTH_CLIENT_ID` / `REDBOOTH_CLIENT_SECRET` | OAuth app credentials (needed for login and refresh) |
-| `REDBOOTH_READ_ONLY` | `true` disables all write tools |
-| `REDBOOTH_ACCESS_TOKEN` | Use a static token instead of the OAuth flow (expires, so best for quick tests) |
-| `REDBOOTH_TOKEN_PATH` | Custom token file location |
-| `REDBOOTH_REDIRECT_PORT` | Callback port (default `8765`; update your app's redirect URI to match) |
-
-## FAQ
-
-**Does this work on claude.ai in the browser?**
-Not yet. claude.ai web and mobile only support *remote* MCP servers (hosted at a URL). This project is a *local* server that runs on your computer. A hosted version is on the roadmap.
-
-**Is my data sent anywhere else?**
-No. The server runs locally and only calls `https://redbooth.com`.
-
----
+| `REDBOOTH_READ_ONLY=true` | Disable all write tools |
+| `REDBOOTH_AUTH_BROKER_URL` | Point to your own Cloudflare Worker OAuth broker |
+| `REDBOOTH_CLIENT_ID` / `REDBOOTH_CLIENT_SECRET` | Use your own Redbooth OAuth app directly (bypasses the broker) |
+| `REDBOOTH_ACCESS_TOKEN` | Use a static access token |
+| `REDBOOTH_TOKEN_PATH` | Custom token file location (default `~/.config/redbooth-mcp/tokens.json`) |
 
 ## Development
 
@@ -126,25 +96,6 @@ npm run build
 npm test
 npm run inspect   # opens the MCP Inspector against the local build
 ```
-
-Project layout:
-
-```
-src/
-  cli.ts            # entry: serve | auth | status
-  index.ts          # MCP server + tool registration
-  auth.ts           # token storage & refresh
-  login.ts          # OAuth authorization-code flow (local callback server)
-  client.ts         # Redbooth REST client (retries, pagination)
-  tools/            # tool definitions
-manifest.json       # Claude Desktop extension (MCPB) manifest
-```
-
-### Releasing
-
-1. Bump `version` in `package.json`, `manifest.json` and `src/index.ts`.
-2. `git tag v0.x.y && git push --tags`
-3. GitHub Actions publishes to npm (needs the `NPM_TOKEN` secret) and attaches `redbooth.mcpb` to the release.
 
 ## License
 

@@ -3,8 +3,8 @@
   "name": "redbooth-mcp",
   "display_name": "Redbooth",
   "version": "0.1.0",
-  "description": "Work with Redbooth projects, tasks, subtasks and comments from Claude.",
-  "long_description": "Connects Claude to Redbooth via the official REST API v3. List and create projects, task lists and tasks, update status and assignees, manage subtasks and comments. Requires your own Redbooth OAuth app (free) – see the README.",
+  "description": "Manage your Redbooth projects, tasks, subtasks and comments directly from Claude.",
+  "long_description": "One-click Redbooth integration for Claude. Ask Claude about your projects, tasks, due dates, or assignees, and create or complete tasks directly in chat. On your first question, your browser opens to Redbooth so you can click 'Allow' – no API keys or developer account needed.",
   "author": {
     "name": "rmstougaard",
     "url": "https://github.com/rmstougaard"
@@ -16,7 +16,7 @@
   "homepage": "https://github.com/rmstougaard/redbooth-mcp",
   "support": "https://github.com/rmstougaard/redbooth-mcp/issues",
   "license": "MIT",
-  "keywords": ["redbooth", "tasks", "project management"],
+  "keywords": ["redbooth", "tasks", "project management", "productivity"],
   "server": {
     "type": "node",
     "entry_point": "dist/cli.js",
@@ -24,36 +24,22 @@
       "command": "node",
       "args": ["${__dirname}/dist/cli.js"],
       "env": {
-        "REDBOOTH_CLIENT_ID": "${user_config.client_id}",
-        "REDBOOTH_CLIENT_SECRET": "${user_config.client_secret}",
         "REDBOOTH_READ_ONLY": "${user_config.read_only}"
       }
     }
   },
   "user_config": {
-    "client_id": {
-      "type": "string",
-      "title": "Redbooth Client ID",
-      "description": "From your app at https://redbooth.com/oauth2/applications (redirect URI: http://localhost:8765/callback).",
-      "required": true
-    },
-    "client_secret": {
-      "type": "string",
-      "title": "Redbooth Client Secret",
-      "description": "From the same Redbooth app.",
-      "sensitive": true,
-      "required": true
-    },
     "read_only": {
       "type": "boolean",
       "title": "Read-only mode",
-      "description": "Hide all tools that create or modify data.",
+      "description": "When enabled, Claude can view your projects and tasks but cannot create or modify anything.",
       "default": false,
       "required": false
     }
   },
   "tools": [
-    { "name": "login", "description": "Connect to your Redbooth account (opens browser)." },
+    { "name": "login", "description": "Sign in to your Redbooth account in the browser." },
+    { "name": "logout", "description": "Disconnect your Redbooth account." },
     { "name": "get_me", "description": "Get the authenticated user." },
     { "name": "list_organizations", "description": "List organizations." },
     { "name": "list_users", "description": "List users (for assignment)." },
