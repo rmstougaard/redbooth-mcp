@@ -1,0 +1,56 @@
+{
+  "name": "redbooth-mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol (MCP) server for Redbooth – let Claude and other AI agents work with your Redbooth projects, tasks and comments.",
+  "license": "MIT",
+  "author": "rmstougaard",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmstougaard/redbooth-mcp.git"
+  },
+  "homepage": "https://github.com/rmstougaard/redbooth-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/rmstougaard/redbooth-mcp/issues"
+  },
+  "type": "module",
+  "bin": {
+    "redbooth-mcp": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "redbooth",
+    "claude",
+    "ai",
+    "project-management"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"import('node:fs').then(f=>f.chmodSync('dist/cli.js',0o755))\"",
+    "dev": "tsc -p tsconfig.json --watch",
+    "start": "node dist/cli.js",
+    "auth": "node dist/cli.js auth",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "inspect": "npx -y @modelcontextprotocol/inspector node dist/cli.js",
+    "pack:mcpb": "npx -y @anthropic-ai/mcpb pack",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

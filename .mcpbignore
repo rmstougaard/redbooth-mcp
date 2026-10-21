@@ -1,0 +1,7 @@
+src/
+.github/
+coverage/
+*.test.*
+tsconfig.json
+.env*
+*.mcpb

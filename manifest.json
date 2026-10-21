@@ -1,0 +1,81 @@
+{
+  "manifest_version": "0.2",
+  "name": "redbooth-mcp",
+  "display_name": "Redbooth",
+  "version": "0.1.0",
+  "description": "Work with Redbooth projects, tasks, subtasks and comments from Claude.",
+  "long_description": "Connects Claude to Redbooth via the official REST API v3. List and create projects, task lists and tasks, update status and assignees, manage subtasks and comments. Requires your own Redbooth OAuth app (free) – see the README.",
+  "author": {
+    "name": "rmstougaard",
+    "url": "https://github.com/rmstougaard"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rmstougaard/redbooth-mcp.git"
+  },
+  "homepage": "https://github.com/rmstougaard/redbooth-mcp",
+  "support": "https://github.com/rmstougaard/redbooth-mcp/issues",
+  "license": "MIT",
+  "keywords": ["redbooth", "tasks", "project management"],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/cli.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/cli.js"],
+      "env": {
+        "REDBOOTH_CLIENT_ID": "${user_config.client_id}",
+        "REDBOOTH_CLIENT_SECRET": "${user_config.client_secret}",
+        "REDBOOTH_READ_ONLY": "${user_config.read_only}"
+      }
+    }
+  },
+  "user_config": {
+    "client_id": {
+      "type": "string",
+      "title": "Redbooth Client ID",
+      "description": "From your app at https://redbooth.com/oauth2/applications (redirect URI: http://localhost:8765/callback).",
+      "required": true
+    },
+    "client_secret": {
+      "type": "string",
+      "title": "Redbooth Client Secret",
+      "description": "From the same Redbooth app.",
+      "sensitive": true,
+      "required": true
+    },
+    "read_only": {
+      "type": "boolean",
+      "title": "Read-only mode",
+      "description": "Hide all tools that create or modify data.",
+      "default": false,
+      "required": false
+    }
+  },
+  "tools": [
+    { "name": "login", "description": "Connect to your Redbooth account (opens browser)." },
+    { "name": "get_me", "description": "Get the authenticated user." },
+    { "name": "list_organizations", "description": "List organizations." },
+    { "name": "list_users", "description": "List users (for assignment)." },
+    { "name": "list_projects", "description": "List projects." },
+    { "name": "get_project", "description": "Get a project." },
+    { "name": "create_project", "description": "Create a project." },
+    { "name": "list_task_lists", "description": "List task lists in a project." },
+    { "name": "create_task_list", "description": "Create a task list." },
+    { "name": "list_tasks", "description": "List/filter tasks." },
+    { "name": "get_task", "description": "Get a task." },
+    { "name": "create_task", "description": "Create a task." },
+    { "name": "update_task", "description": "Update a task." },
+    { "name": "complete_task", "description": "Mark a task done." },
+    { "name": "list_subtasks", "description": "List subtasks." },
+    { "name": "create_subtask", "description": "Create a subtask." },
+    { "name": "update_subtask", "description": "Update a subtask." },
+    { "name": "list_comments", "description": "List task comments." },
+    { "name": "add_comment", "description": "Comment on a task." },
+    { "name": "redbooth_api_get", "description": "Raw read-only API GET." }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": { "node": ">=18.0.0" }
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.mcpb
+.env
+.env.*
+!.env.example
+tokens.json
+coverage/
+.DS_Store
