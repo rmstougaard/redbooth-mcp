@@ -6,3 +6,16 @@ coverage/
 tsconfig.json
 .env*
 *.mcpb
+node_modules/typescript/
+node_modules/vitest/
+node_modules/@vitest/
+node_modules/vite/
+node_modules/rollup/
+node_modules/@rollup/
+node_modules/esbuild/
+node_modules/@esbuild/
+node_modules/@types/
+node_modules/tinypool/
+node_modules/tinyspy/
+node_modules/chai/
+node_modules/magic-string/
